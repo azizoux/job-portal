@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 const Login = () => {
-  const [formData, setForm] = useState({
+  const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
@@ -23,12 +23,91 @@ const Login = () => {
     success: false,
   });
   // validation function
-  const validateEmail = (email) => {};
-  const validatePassword = (password) => {};
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return "Please enter a valide email adress";
+    return "";
+  };
+  const validatePassword = (password) => {
+    if (!password) return "Password is required";
+    return "";
+  };
   // handle input change
-  const handleInputChange = (e) => {};
-  const validateForm = () => {};
-  const handleSubmit = async (e) => {};
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    // clear error when user start typing
+    if (formState.errors[name]) {
+      setFormState((prev) => ({
+        ...prev,
+        errors: { ...prev.errors, [name]: "" },
+      }));
+    }
+  };
+  const validateForm = () => {
+    const errors = {
+      email: validateEmail(formData.email),
+      password: validatePassword(formData.password),
+    };
+    // remove empty errors
+    Object.keys(errors).forEach((key) => {
+      if (!errors[key]) delete errors[key];
+    });
+    setFormState((prev) => ({
+      ...prev,
+      errors,
+    }));
+
+    return Object.keys(errors).length === 0;
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
+    setFormState((prev) => ({
+      ...prev,
+      loading: true,
+    }));
+    try {
+      //API integration
+    } catch (error) {
+      setFormState((prev) => ({
+        ...prev,
+        loading: false,
+        errors: {
+          submit:
+            error?.message || "Login failed, please check your credentials.",
+        },
+      }));
+    }
+  };
+  if (formState.success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center"
+        >
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Welcome back!
+          </h2>
+          <p className="text-gray-600 mb-4">
+            You have been successfully logged in.
+          </p>
+          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto" />
+          <p className="text-sm text-gray-500 mt-2">
+            Redirecting to your Dashboard...
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <motion.div
@@ -43,7 +122,7 @@ const Login = () => {
           </h2>
           <p className="text-gray-600">Sign in to your JobPortal account</p>
         </div>
-        <form onSubmit={handleSubmit} className="">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* Email form */}
           <div>
             <label className="block font-medium text-sm text-gray-700 mb-2">
@@ -56,14 +135,14 @@ const Login = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className={`w-full pl-10 pr-4 py-3 rounded-lg ${
+                className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                   formState.errors.email ? "border-red-500" : "border-gray-300"
                 } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
                 placeholder="Enter your email"
               />
             </div>
             {formState.errors.email && (
-              <p className="text-red-500 text-sm mt-1 flex justify-center">
+              <p className="text-red-500 text-sm mt-2 flex justify-start">
                 <AlertCircle className="w-4 h-4 mr-1" />
                 {formState.errors.email}
               </p>
@@ -81,7 +160,7 @@ const Login = () => {
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className={`w-full pl-10 pr-4 py-3 rounded-lg ${
+                className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                   formState.errors.email ? "border-red-500" : "border-gray-300"
                 } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
                 placeholder="Enter your password"
@@ -104,11 +183,49 @@ const Login = () => {
               </button>
             </div>
             {formState.errors.password && (
-              <p className="text-red-500 text-sm mt-1 flex justify-center">
-                <Lock className="w-4 h-4 mr-1" />
+              <p className="text-red-500 text-sm mt-2 flex justify-start">
+                <AlertCircle className="w-4 h-4 mr-1" />
                 {formState.errors.password}
               </p>
             )}
+          </div>
+          {/* submit errors */}
+          {formState.errors.submit && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-red-700 text-sm flex items-center">
+                <AlertCircle className="w-4 h-4 mr-2" />
+                {formState.errors.submit}
+              </p>
+            </div>
+          )}
+          {/* submit button */}
+          <button
+            type="submit"
+            disabled={formState.loading}
+            className="w-full py-3 shadow bg-gradient-to-r from-blue-600 to bg-purple-600 rounded-xl mt-2
+            hover:from-blue-700 hover:to-purple-700 transition-all duration-300 text-white font-semibold 
+            disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 cursor-pointer"
+          >
+            {formState.loading ? (
+              <>
+                <Loader className="w-5 h-5 animate-spin" />
+                <span>Signing in ...</span>
+              </>
+            ) : (
+              <span>Sign In</span>
+            )}
+          </button>
+          {/* sign up link */}
+          <div className="text-center">
+            <p className="text-gray-600">
+              Don't have an account ?{" "}
+              <a
+                href="/signup"
+                className="font-medium text-blue-600 hover:text-blue-700"
+              >
+                Sign Up
+              </a>
+            </p>
           </div>
         </form>
       </motion.div>

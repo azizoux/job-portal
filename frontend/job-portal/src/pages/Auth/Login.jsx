@@ -9,6 +9,7 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
+import { validateEmail } from "../../utils/helper";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -22,12 +23,7 @@ const Login = () => {
     showPassword: false,
     success: false,
   });
-  // validation function
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return "Please enter a valide email adress";
-    return "";
-  };
+
   const validatePassword = (password) => {
     if (!password) return "Password is required";
     return "";

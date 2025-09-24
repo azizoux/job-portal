@@ -24,7 +24,7 @@ userSchema.pre("save", async function (next) {
   next();
 });
 // Match entered password
-userSchema.methods.matchPassword = function (enteredPassword) {
+userSchema.methods.matchPassword = async function (enteredPassword) {
   return bcryptjs.compare(enteredPassword, this.password);
 };
 const User = mongoose.model("User", userSchema);

@@ -1,11 +1,7 @@
 import User from "../models/User.js";
-import jwt from "jsonwebtoken";
 import bcryptjs from "bcryptjs";
+import { generateToken } from "../Utils/utils.js";
 
-//Generate token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "60d" });
-};
 // @desc register new user
 export const register = async (req, res) => {
   try {

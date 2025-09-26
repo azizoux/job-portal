@@ -21,6 +21,6 @@ router
   .get(getJobById)
   .put(protect, updateJob)
   .delete(protect, deleteJob);
-router.route("/:id/toggle-close", protect, toggleCloseJob);
+router.route("/:id/toggle-close").post(protect, toggleCloseJob);
 
 export default router;

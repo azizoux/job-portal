@@ -23,8 +23,8 @@ export const getJobs = async (req, res) => {
     req.query;
   const query = {
     isClosed: false,
-    ...(keyword && { title: keyword, $options: "1" }),
-    ...(location && { location: { $regex: location, $options: "1" } }),
+    ...(keyword && { title: { $regex: keyword, $options: "i" } }),
+    ...(location && { location: { $regex: location, $options: "i" } }),
     ...(category && { category }),
     ...(type && { type }),
   };
@@ -50,7 +50,7 @@ export const getJobs = async (req, res) => {
     let savedJobIds = [];
     let appliedJobStatusMap = {};
 
-    if (userI) {
+    if (userId) {
       // Saved Jobs
       const savedJobs = await SavedJob.find({ jobseeker: userId }).select(
         "job"
@@ -58,7 +58,7 @@ export const getJobs = async (req, res) => {
       savedJobIds = savedJobs.map((s) => String(s.job));
       // Applications
       const applications = await Application.find({ applicant: userId }).select(
-        "job satatus"
+        "job status"
       );
       applications.forEach((app) => {
         appliedJobStatusMap[String(app.job)] = app.status;
@@ -75,6 +75,8 @@ export const getJobs = async (req, res) => {
     });
     res.status(200).json({ success: true, jobsWithExtras });
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -82,6 +84,31 @@ export const getJobs = async (req, res) => {
 // @desc getJobsEmployer
 export const getJobsEmployer = async (req, res) => {
   try {
+    const userId = req.user._id;
+    const { role } = req.user;
+
+    if (role !== "employer") {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
+    //Get all jobs posted by employer
+    const jobs = await Job.find({ company: userId })
+      .populate("company", "name companyName companyLogo")
+      .lean(); // .lean() makes jobs plain JS objects so we can add new fields
+
+    // Count application for each job
+    const jobsWithApplicationCounts = await Promise.all(
+      jobs.map(async (job) => {
+        const applicationCount = await Application.countDocuments({
+          job: job._id,
+        });
+        return {
+          ...job,
+          applicationCount,
+        };
+      })
+    );
+    res.status(200).json({ success: true, jobsWithApplicationCounts });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -90,6 +117,34 @@ export const getJobsEmployer = async (req, res) => {
 // @desc get Job By Id
 export const getJobById = async (req, res) => {
   try {
+    const { userId } = req.query;
+
+    const job = await Job.findById(req.params.id).populate(
+      "company",
+      "name companyName companyLogo"
+    );
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found" });
+    }
+
+    let applicationStatus = null;
+
+    if (userId) {
+      const application = await Application.findOne({
+        job: job._id,
+        applicant: userId,
+      }).select("status");
+
+      if (application) {
+        applicationStatus = application.status;
+      }
+    }
+    const result = {
+      ...job.toObject(),
+      applicationStatus,
+    };
+    res.status(200).json({ success: true, result });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -98,7 +153,22 @@ export const getJobById = async (req, res) => {
 // @desc update a job
 export const updateJob = async (req, res) => {
   try {
+    const job = await Job.findById(req.params.id);
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found" });
+    }
+
+    if (job.company.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authprized to update this job" });
+    }
+
+    Object.assign(job, req.body);
+    const updated = await job.save();
+    res.status(200).json({ success: true, job: updated });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -106,7 +176,23 @@ export const updateJob = async (req, res) => {
 // @desc delete a job
 export const deleteJob = async (req, res) => {
   try {
+    const job = await Job.findById(req.params.id);
+    if (!job) {
+      return res.status(404).json({ success: true, message: "Job not found" });
+    }
+
+    if (job.company.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized to delete this job" });
+    }
+
+    await job.deleteOne();
+    res
+      .status(200)
+      .json({ success: true, message: "Job deleted successfully" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -114,7 +200,25 @@ export const deleteJob = async (req, res) => {
 // @desc toggle close a job
 export const toggleCloseJob = async (req, res) => {
   try {
+    const job = await Job.findById(req.params.id);
+    if (!job) {
+      return req.status(404).json({ success: false, message: "Job not found" });
+    }
+
+    if (job.company.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized to close this Job" });
+    }
+
+    job.isClosed = !job.isClosed;
+    await job.save();
+    res.status(200).json({
+      success: true,
+      message: `Job marked ${job.isClosed ? "closed" : "opened"}`,
+    });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

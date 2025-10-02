@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Mail,
@@ -10,8 +11,13 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { validateEmail } from "../../utils/helper";
+import { API_PATHS } from "../../utils/apiPaths";
+import axiosInstance from "../../utils/axiosInstance";
+import { useAuth } from "../../context/useAuth";
 
 const Login = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -69,7 +75,34 @@ const Login = () => {
       loading: true,
     }));
     try {
-      //API integration
+      // Login API integration
+      console.log("API start...");
+
+      const response = await axiosInstance.post(API_PATHS.AUTH.LOGIN, {
+        email: formData.email,
+        password: formData.password,
+        rememberMe: formData.rememberMe,
+      });
+      console.log("response:", response.data);
+
+      setFormState((prev) => ({
+        ...prev,
+        loading: false,
+        success: true,
+        errors: {},
+      }));
+      const { token, role } = response.data.user;
+      console.log({ token, role });
+
+      if (token) {
+        login(response.data.user, token);
+        // Redirect based on role
+        const redirectPath =
+          role === "employer" ? "/employer-dashboard" : "/find-jobs";
+        setTimeout(() => {
+          navigate(redirectPath, { replace: true });
+        }, 2000);
+      }
     } catch (error) {
       setFormState((prev) => ({
         ...prev,

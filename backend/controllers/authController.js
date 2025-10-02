@@ -7,10 +7,12 @@ export const register = async (req, res) => {
   try {
     const { name, email, password, role, avatar } = req.body;
     const existingUser = await User.findOne({ email });
-    if (existingUser)
+    if (existingUser) {
       return res
         .status(400)
         .json({ success: false, message: "User already exists" });
+    }
+
     const user = await User.create({ name, email, password, role, avatar });
 
     const formattedUser = {
@@ -41,8 +43,8 @@ export const login = async (req, res) => {
         .status(404)
         .json({ success: false, message: "User not found" });
     }
+
     const isMatch = bcryptjs.compare(user.password, password); // await user.matchPassword(password);
-    console.log("isMatch:", isMatch);
 
     if (!isMatch) {
       return res
@@ -62,8 +64,9 @@ export const login = async (req, res) => {
       companyLogo: user.companyLogo || "",
       resume: user.resume || "",
     };
+
     res
-      .status(201)
+      .status(200)
       .json({ success: true, message: "login success", user: formattedUser });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -72,4 +75,22 @@ export const login = async (req, res) => {
 //@desc Get Logged-In User
 export const getMe = async (req, res) => {
   res.json(req.user);
+};
+
+// @desc upload image
+export const uploadImage = (req, res) => {
+  try {
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded" });
+    }
+    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${
+      req.file.filename
+    }`;
+    res.status(200).json({ success: true, imageUrl });
+  } catch (error) {
+    console.log("error lors de l'import du fichier");
+    return res.status.json({ success: false, message: error.message });
+  }
 };

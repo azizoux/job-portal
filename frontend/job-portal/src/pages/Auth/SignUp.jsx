@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   User,
@@ -18,8 +19,14 @@ import {
   validateEmail,
   validatePassword,
 } from "../../utils/helper";
+import uploadImage from "../../utils/uploadImage";
+import axiosInstance from "../../utils/axiosInstance";
+import { API_PATHS } from "../../utils/apiPaths";
+import { useAuth } from "../../context/useAuth";
 
 const SignUp = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -108,6 +115,36 @@ const SignUp = () => {
     setFormState((prev) => ({ ...prev, loading: true }));
     try {
       //API Call
+      let avatarUrl = "";
+      // Upload image if present
+      if (formData.avatar) {
+        const imgUploadRes = await uploadImage(formData.avatar);
+        avatarUrl = imgUploadRes.imageUrl || "";
+      }
+      const response = await axiosInstance.post(API_PATHS.AUTH.REGISTER, {
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        avatar: avatarUrl || "",
+      });
+      // Handle successful registration
+      setFormState((prev) => ({
+        ...prev,
+        loading: false,
+        success: true,
+        errors: {},
+      }));
+      const { token } = response.data.user;
+      if (token) {
+        login(response.data.user, token);
+        // Redirect based on role
+        const redirectPath =
+          formData.role === "employer" ? "/employer-dashboard" : "/find-jobs";
+        setTimeout(() => {
+          navigate(redirectPath, { replace: true });
+        }, 4000);
+      }
     } catch (error) {
       console.log("error:", error);
       setFormState((prev) => ({

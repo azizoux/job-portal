@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { Children, useEffect, useState } from "react";
 import { Briefcase, Building2, LogOut, Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import { NAVIGATION_MENU } from "../../utils/data";
+import ProfileDropdown from "./ProfileDropdown";
 
 const NavigationItem = ({ item, isActive, onClick, isCollapsed }) => {
   const Icon = item.icon;
@@ -12,8 +13,8 @@ const NavigationItem = ({ item, isActive, onClick, isCollapsed }) => {
       onClick={() => onClick(item.id)}
       className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group ${
         isActive
-          ? "bg-blue-50 text-blue-700 shadow-sm shadow-blue-50"
-          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+          ? "bg-blue-100 text-blue-700 shadow-sm shadow-blue-50"
+          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
       }`}
     >
       <Icon
@@ -26,7 +27,7 @@ const NavigationItem = ({ item, isActive, onClick, isCollapsed }) => {
   );
 };
 
-const DashBoardLayout = ({ activeMenu }) => {
+const DashBoardLayout = ({ activeMenu, children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -35,9 +36,11 @@ const DashBoardLayout = ({ activeMenu }) => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Handle responsive behavior
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
+
       setIsMobile(mobile);
       if (!mobile) {
         setSidebarOpen(false);
@@ -70,8 +73,10 @@ const DashBoardLayout = ({ activeMenu }) => {
   };
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    setSidebarOpen((prev) => !prev);
+    console.log("toggled:", sidebarOpen);
   };
+  //   console.log("sidebarOpen:", sidebarOpen);
 
   const sidebarCollapsed = !isMobile && false;
 
@@ -111,7 +116,7 @@ const DashBoardLayout = ({ activeMenu }) => {
             <NavigationItem
               key={item.id}
               item={item}
-              isActive={activeMenu === item.id}
+              isActive={activeNavItem === item.id}
               onClick={handleNavigation}
               isCollapsed={sidebarCollapsed}
             />
@@ -128,6 +133,62 @@ const DashBoardLayout = ({ activeMenu }) => {
             {!sidebarCollapsed && <span className="ml-3">Logout</span>}
           </button>
         </div>
+      </div>
+      {/* Mobile overlay */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/25 z-40 backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main content */}
+      <div
+        className={`flex-1 flex-col transition-all duration-300 ${
+          isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
+        }`}
+      >
+        {/* Top navbar */}
+        <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 h-16 flex items-center justify-between px-6 sticky top-0 z-30">
+          <div className="flex items-center space-x-4">
+            {isMobile && (
+              <button
+                onClick={toggleSidebar}
+                className="p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+              >
+                {sidebarOpen ? (
+                  <X className="h-5 w-5 text-gray-600" />
+                ) : (
+                  <Menu className="h-5 w-5 text-gray-600" />
+                )}
+              </button>
+            )}
+            <div>
+              <h1 className="text-base font-semibold text-gray-900">
+                Welcome back!
+              </h1>
+              <p className="text-sm text-gray-500 hidden sm:block">
+                Here's what's happening with your jobs today.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            {/* Profile dropdown */}
+            <ProfileDropdown
+              isOpen={profileDropdownOpen}
+              onToggle={(e) => {
+                e.stopPropagation();
+                setProfileDropdownOpen(!profileDropdownOpen);
+              }}
+              avatar={user?.avatar || ""}
+              compagnyName={user?.name || ""}
+              email={user?.email || ""}
+              onLogout={logout}
+            />
+          </div>
+        </header>
+        {/* Main content area */}
+        <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>
   );

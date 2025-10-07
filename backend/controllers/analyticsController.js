@@ -88,7 +88,7 @@ export const getEmployerAnalytics = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate("applicant", "neme email avatar")
+      .populate("applicant", "name email avatar")
       .populate("job", "title");
 
     const counts = {
